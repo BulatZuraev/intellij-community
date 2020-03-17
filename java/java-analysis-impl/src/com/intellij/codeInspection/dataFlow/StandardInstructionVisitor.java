@@ -15,6 +15,7 @@ import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.ThreeState;
+import com.siyeh.ig.callMatcher.CallMatcher;
 import com.siyeh.ig.psiutils.MethodUtils;
 import com.siyeh.ig.psiutils.TypeUtils;
 import gnu.trove.THashSet;
@@ -344,6 +345,9 @@ public class StandardInstructionVisitor extends InstructionVisitor {
 
   }
 
+  private static final CallMatcher CLOSE_METHOD = CallMatcher.instanceCall(CommonClassNames.JAVA_LANG_AUTO_CLOSEABLE, "close")
+    .parameterCount(0);
+
   @Override
   public DfaInstructionState[] visitMethodCall(final MethodCallInstruction instruction, final DataFlowRunner runner, final DfaMemoryState memState) {
     DfaValueFactory factory = runner.getFactory();
@@ -370,6 +374,13 @@ public class StandardInstructionVisitor extends InstructionVisitor {
     for (DfaCallState callState : currentStates) {
       callState.myMemoryState.push(defaultResult);
       finalStates.add(callState.myMemoryState);
+    }
+
+    if (CLOSE_METHOD.methodMatches(instruction.getTargetMethod())) {
+      DfaValue stateValue = SpecialField.RESOURCE_STATE.createValue(factory, callArguments.myQualifier);
+      for (DfaMemoryState state : finalStates) {
+        state.setDfType(stateValue, DfTypes.intValue(SpecialField.resource_closed));
+      }
     }
 
     DfaInstructionState[] result = new DfaInstructionState[finalStates.size()];

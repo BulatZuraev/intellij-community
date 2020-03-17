@@ -286,6 +286,8 @@ public abstract class DataFlowInspectionBase extends AbstractBaseJavaLocalInspec
 
     reportConstants(reporter, visitor);
 
+    reportClosedResourceUsage(reporter, visitor);
+
     reportMethodReferenceProblems(holder, visitor);
 
     reportArrayAccessProblems(holder, visitor);
@@ -391,6 +393,12 @@ public abstract class DataFlowInspectionBase extends AbstractBaseJavaLocalInspec
         reportConstantReferenceValue(reporter, expression, result);
       }
     });
+  }
+
+  private void reportClosedResourceUsage(ProblemReporter reporter, DataFlowInstructionVisitor visitor) {
+    for (PsiMethodCallExpression expression : visitor.getClosedResourceUsages()) {
+      reporter.registerProblem(getElementToHighlight(expression), JavaAnalysisBundle.message("dataflow.message.resource.usage.closed"));
+    }
   }
 
   private static boolean isCondition(@NotNull PsiExpression expression) {

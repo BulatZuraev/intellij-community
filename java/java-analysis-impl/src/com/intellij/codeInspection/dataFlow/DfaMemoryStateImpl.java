@@ -1248,18 +1248,25 @@ public class DfaMemoryStateImpl implements DfaMemoryState {
   public void flushFields() {
     flushFields(new QualifierStatusMap(null));
   }
-  
+
+  private boolean needFlush(@NotNull DfaMemoryStateImpl.QualifierStatusMap qualifierStatusMap, DfaVariableValue value) {
+    return value.isFlushableByCalls() &&
+           qualifierStatusMap.shouldFlush(value.getQualifier(), value.containsCalls()) &&
+           value.getDescriptor() != SpecialField.RESOURCE_STATE;
+  }
+
+
   public void flushFields(@NotNull DfaMemoryStateImpl.QualifierStatusMap qualifierStatusMap) {
     Set<DfaVariableValue> vars = new LinkedHashSet<>();
     for (DfaVariableValue value : myVariableTypes.keySet()) {
-      if (value.isFlushableByCalls() && qualifierStatusMap.shouldFlush(value.getQualifier(), value.containsCalls())) {
+      if (needFlush(qualifierStatusMap, value)) {
         vars.add(value);
       }
     }
     for (EqClass aClass : myEqClasses) {
       if (aClass != null) {
         for (DfaVariableValue value : aClass) {
-          if (value.isFlushableByCalls() && qualifierStatusMap.shouldFlush(value.getQualifier(), value.containsCalls())) {
+          if (needFlush(qualifierStatusMap, value)) {
             vars.add(value);
           }
         }

@@ -215,7 +215,34 @@ public enum SpecialField implements VariableDescriptor {
     boolean isMyAccessor(PsiMember accessor) {
       return accessor instanceof PsiMethod && OptionalUtil.OPTIONAL_GET.methodMatches((PsiMethod)accessor);
     }
+  },
+
+  RESOURCE_STATE("State", false) {
+    @Override
+    public @NotNull DfType getDefaultValue(boolean forAccessor) {
+      return DfTypes.intRange(LongRangeSet.range(resource_open, resource_closed));
+    }
+
+    @Override
+    public String getPresentationText(@NotNull DfType dfType, @Nullable PsiType type) {
+      // TODO
+      return super.getPresentationText(dfType, type);
+    }
+
+    @Override
+    boolean isMyQualifierType(PsiType type) {
+      return InheritanceUtil.isInheritor(type, JAVA_LANG_AUTO_CLOSEABLE);
+    }
+
+    @Override
+    boolean isMyAccessor(PsiMember accessor) {
+      return false;
+    }
   };
+
+  static final int resource_open = 0;
+  static final int resource_consumed = 1;
+  static final int resource_closed = 2;
 
   private static final SpecialField[] VALUES = values();
   private final String myTitle;

@@ -2,6 +2,7 @@
 <project version="4">
   <component name="AntConfiguration">
     <buildFile url="file://$PROJECT_DIR$/build/update.xml">
+      <maximumHeapSize value="1024" />
       <properties>
         <property name="work.idea.home" value="$APPLICATION_HOME_DIR$" />
       </properties>

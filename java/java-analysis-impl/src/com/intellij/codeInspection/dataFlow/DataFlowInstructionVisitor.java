@@ -21,6 +21,7 @@ import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.ThreeState;
 import com.intellij.util.containers.ContainerUtil;
 import com.siyeh.ig.callMatcher.CallMatcher;
+import com.siyeh.ig.psiutils.ExpressionUtils;
 import com.siyeh.ig.psiutils.TypeUtils;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
@@ -50,6 +51,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
   private final Map<PsiExpression, ThreeState> mySwitchLabelsReachability = new HashMap<>();
   private boolean myAlwaysReturnsNotNull = true;
   private final List<DfaMemoryState> myEndOfInitializerStates = new ArrayList<>();
+  private final Set<PsiMethodCallExpression> myClosedResourceUsages = new HashSet<>();
 
   private static final CallMatcher USELESS_SAME_ARGUMENTS = CallMatcher.anyOf(
     CallMatcher.staticCall(CommonClassNames.JAVA_LANG_MATH, "min", "max").parameterCount(2),
@@ -168,6 +170,10 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     return myConstantExpressions;
   }
 
+  Set<PsiMethodCallExpression> getClosedResourceUsages() {
+    return myClosedResourceUsages;
+  }
+
   Map<PsiMethodReferenceExpression, ConstantResult> getMethodReferenceResults() {
     return myMethodReferenceResults;
   }
@@ -228,6 +234,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
       myRealOperandTypes.merge((PsiTypeCastExpression)parent, fact, TypeConstraint::join);
     }
     reportConstantExpressionValue(value, memState, expression, range);
+    reportClosedResourceUsage(value, memState, expression);
   }
 
   @Override
@@ -305,6 +312,41 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     if (expression instanceof PsiLiteralExpression) return;
     ExpressionChunk chunk = new ExpressionChunk(expression, range);
     myConstantExpressions.compute(chunk, (c, curState) -> ConstantResult.mergeValue(curState, memState, value));
+  }
+
+  private static final CallMatcher CANNOT_CALL_ON_CLOSED = CallMatcher.anyOf(
+    CallMatcher.instanceCall("java.nio.channels.SelectableChannel", "configureBlocking"),
+    CallMatcher.instanceCall("java.nio.channels.spi.AbstractSelectableChannel", "implConfigureBlocking"),
+    CallMatcher.instanceCall("java.nio.channels.NetworkChannel", "bind", "setOption",
+                             "getOption", "getLocalAddress"),
+    CallMatcher.instanceCall("java.nio.channels.ReadableByteChannel", "read"),
+    CallMatcher.instanceCall("java.nio.channels.ScatteringByteChannel", "read"),
+    CallMatcher.instanceCall("java.nio.channels.WritableByteChannel", "write"),
+    CallMatcher.instanceCall("java.nio.channels.GatheringByteChannel", "write"),
+    CallMatcher.instanceCall("java.nio.channels.DatagramChannel", "connect", "getRemoteAddress",
+                             "receive", "send"),
+    CallMatcher.instanceCall("java.nio.channels.AsynchronousFileChannel", "size", "truncate",
+                             "force", "tryLock"),
+    CallMatcher.instanceCall("java.nio.channels.AsynchronousServerSocketChannel", "bind"),
+
+    CallMatcher.instanceCall("java.nio.channels.AsynchronousSocketChannel", "shutdownInput", "shutdownOutput",
+                             "getRemoteAddress"),
+    CallMatcher.instanceCall("java.io.BufferedInputStream", "read", "skip",
+                             "available", "reset"),
+    CallMatcher.instanceCall("java.io.Reader", "read", "ready", "mark", "reset", "skip"),
+    CallMatcher.instanceCall("java.io.BufferedReader", "readLine"),
+    CallMatcher.instanceCall("java.io.Writer", "write", "append", "flush"),
+    CallMatcher.instanceCall("java.io.BufferedWriter", "newLine")
+  );
+
+  private void reportClosedResourceUsage(DfaValue value, DfaMemoryState memState, PsiExpression expression) {
+    PsiMethodCallExpression call = ExpressionUtils.getCallForQualifier(expression);
+    if (CANNOT_CALL_ON_CLOSED.test(call)) {
+      DfaValue qualifierState = SpecialField.RESOURCE_STATE.createValue(value.getFactory(), value);
+      if (DfConstantType.isConst(memState.getDfType(qualifierState), SpecialField.resource_closed)) {
+        myClosedResourceUsages.add(call);
+      }
+    }
   }
 
   @Override
