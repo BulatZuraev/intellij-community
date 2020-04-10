@@ -220,7 +220,7 @@ public enum SpecialField implements VariableDescriptor {
   RESOURCE_STATE("State", false) {
     @Override
     public @NotNull DfType getDefaultValue(boolean forAccessor) {
-      return DfTypes.intRange(LongRangeSet.range(resource_open, resource_closed));
+      return DfTypes.intRange(LongRangeSet.range(RESOURCE_OPEN, RESOURCE_CLOSED));
     }
 
     @Override
@@ -240,9 +240,9 @@ public enum SpecialField implements VariableDescriptor {
     }
   };
 
-  static final int resource_open = 0;
-  static final int resource_consumed = 1;
-  static final int resource_closed = 2;
+  static final int RESOURCE_OPEN = 0;
+  static final int RESOURCE_CONSUMED = 1;
+  static final int RESOURCE_CLOSED = 2;
 
   private static final SpecialField[] VALUES = values();
   private final String myTitle;

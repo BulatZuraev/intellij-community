@@ -379,7 +379,7 @@ public class StandardInstructionVisitor extends InstructionVisitor {
     if (CLOSE_METHOD.methodMatches(instruction.getTargetMethod())) {
       DfaValue stateValue = SpecialField.RESOURCE_STATE.createValue(factory, callArguments.myQualifier);
       for (DfaMemoryState state : finalStates) {
-        state.setDfType(stateValue, DfTypes.intValue(SpecialField.resource_closed));
+        state.setDfType(stateValue, DfTypes.intValue(SpecialField.RESOURCE_CLOSED));
       }
     }
 

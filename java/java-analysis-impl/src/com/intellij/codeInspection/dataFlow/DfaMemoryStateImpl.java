@@ -1255,7 +1255,6 @@ public class DfaMemoryStateImpl implements DfaMemoryState {
            value.getDescriptor() != SpecialField.RESOURCE_STATE;
   }
 
-
   public void flushFields(@NotNull DfaMemoryStateImpl.QualifierStatusMap qualifierStatusMap) {
     Set<DfaVariableValue> vars = new LinkedHashSet<>();
     for (DfaVariableValue value : myVariableTypes.keySet()) {

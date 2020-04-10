@@ -1149,8 +1149,13 @@ public class ControlFlowAnalyzer extends JavaElementVisitor {
       popTrap(TwrFinally.class);
       pushTrap(new InsideFinally(resourceList));
       startElement(resourceList);
+      //mark closed if expression
       for (PsiResourceListElement element : resourceList) {
-        //TODO handle try-with-resources
+        if (element instanceof PsiResourceExpression) {
+          PsiResourceExpression expr = (PsiResourceExpression)element;
+          DfaValue value = myFactory.getExpressionFactory().getExpressionDfaValue(expr.getExpression());
+          addInstruction(new TryWithResourcesCloseInstruction(value));
+        }
       }
       addInstruction(new FlushFieldsInstruction());
       addThrows(null, closerExceptions);

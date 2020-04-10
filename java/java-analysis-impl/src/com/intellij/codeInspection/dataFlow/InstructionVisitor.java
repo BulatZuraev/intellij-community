@@ -18,6 +18,7 @@ package com.intellij.codeInspection.dataFlow;
 import com.intellij.codeInsight.Nullability;
 import com.intellij.codeInspection.dataFlow.instructions.*;
 import com.intellij.codeInspection.dataFlow.types.DfConstantType;
+import com.intellij.codeInspection.dataFlow.types.DfTypes;
 import com.intellij.codeInspection.dataFlow.value.*;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
@@ -279,6 +280,13 @@ public abstract class InstructionVisitor {
   public DfaInstructionState[] visitMethodReference(MethodReferenceInstruction instruction, DataFlowRunner runner, DfaMemoryState memState) {
     memState.pop();
     pushExpressionResult(runner.getFactory().getUnknown(), instruction, memState);
+    return nextInstruction(instruction, runner, memState);
+  }
+
+  public DfaInstructionState[] visitCloseMethod(TryWithResourcesCloseInstruction instruction, DataFlowRunner runner, DfaMemoryState memState, DfaValue value) {
+    DfaValueFactory factory = runner.getFactory();
+    DfaValue stateValue = SpecialField.RESOURCE_STATE.createValue(factory, value);
+    memState.setDfType(stateValue, DfTypes.intValue(SpecialField.RESOURCE_CLOSED));
     return nextInstruction(instruction, runner, memState);
   }
 

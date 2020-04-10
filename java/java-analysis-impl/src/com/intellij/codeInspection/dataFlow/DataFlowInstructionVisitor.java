@@ -331,19 +331,23 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
 
     CallMatcher.instanceCall("java.nio.channels.AsynchronousSocketChannel", "shutdownInput", "shutdownOutput",
                              "getRemoteAddress"),
-    CallMatcher.instanceCall("java.io.BufferedInputStream", "read", "skip",
-                             "available", "reset"),
     CallMatcher.instanceCall("java.io.Reader", "read", "ready", "mark", "reset", "skip"),
     CallMatcher.instanceCall("java.io.BufferedReader", "readLine"),
     CallMatcher.instanceCall("java.io.Writer", "write", "append", "flush"),
-    CallMatcher.instanceCall("java.io.BufferedWriter", "newLine")
+    CallMatcher.instanceCall("java.io.BufferedWriter", "newLine"),
+    CallMatcher.instanceCall("java.io.InputStream", "read", "skip", "available", "reset"),
+    CallMatcher.instanceCall("java.io.DataInputStream", "readBoolean", "readByte", "readChar", "readDouble",
+                             "readFloat", "readFully", "readInt", "readLine", "readLong", "readShort", "readUnsignedByte",
+                             "readUnsignedShort", "readUTF", "skipBytes"),
+    CallMatcher.instanceCall("java.io.PushbackInputStream", "unread"),
+    CallMatcher.instanceCall("java.io.OutputStream", "write", "flush")
   );
 
   private void reportClosedResourceUsage(DfaValue value, DfaMemoryState memState, PsiExpression expression) {
     PsiMethodCallExpression call = ExpressionUtils.getCallForQualifier(expression);
     if (CANNOT_CALL_ON_CLOSED.test(call)) {
       DfaValue qualifierState = SpecialField.RESOURCE_STATE.createValue(value.getFactory(), value);
-      if (DfConstantType.isConst(memState.getDfType(qualifierState), SpecialField.resource_closed)) {
+      if (DfConstantType.isConst(memState.getDfType(qualifierState), SpecialField.RESOURCE_CLOSED)) {
         myClosedResourceUsages.add(call);
       }
     }
