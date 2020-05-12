@@ -17,4 +17,10 @@ class ResourceClose {
     unknown();
     c.<warning descr="The call to 'read' always fails as resource is closed">read</warning>();
   }
+
+  void testUnsoundWarning(Reader c, boolean flag) throws Exception {
+    c.read();
+    if (flag) c.close();
+    c.<warning descr="The call to 'read' may fail as resource is closed">read</warning>();
+  }
 }

@@ -4,6 +4,7 @@ package com.intellij.codeInspection.dataFlow;
 import com.intellij.codeInspection.dataFlow.DataFlowInspectionBase.ConstantResult;
 import com.intellij.codeInspection.dataFlow.instructions.*;
 import com.intellij.codeInspection.dataFlow.types.DfConstantType;
+import com.intellij.codeInspection.dataFlow.types.DfIntType;
 import com.intellij.codeInspection.dataFlow.types.DfType;
 import com.intellij.codeInspection.dataFlow.value.*;
 import com.intellij.codeInspection.util.OptionalUtil;
@@ -29,6 +30,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static com.intellij.util.ObjectUtils.tryCast;
@@ -51,7 +54,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
   private final Map<PsiExpression, ThreeState> mySwitchLabelsReachability = new HashMap<>();
   private boolean myAlwaysReturnsNotNull = true;
   private final List<DfaMemoryState> myEndOfInitializerStates = new ArrayList<>();
-  private final Set<PsiMethodCallExpression> myClosedResourceUsages = new HashSet<>();
+  private final Map<PsiMethodCallExpression, Set<Integer>> myClosedResourceUsages = new HashMap<>();
 
   private static final CallMatcher USELESS_SAME_ARGUMENTS = CallMatcher.anyOf(
     CallMatcher.staticCall(CommonClassNames.JAVA_LANG_MATH, "min", "max").parameterCount(2),
@@ -170,7 +173,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     return myConstantExpressions;
   }
 
-  Set<PsiMethodCallExpression> getClosedResourceUsages() {
+  Map<PsiMethodCallExpression, Set<Integer>> getClosedResourceUsages() {
     return myClosedResourceUsages;
   }
 
@@ -347,9 +350,12 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     PsiMethodCallExpression call = ExpressionUtils.getCallForQualifier(expression);
     if (CANNOT_CALL_ON_CLOSED.test(call)) {
       DfaValue qualifierState = SpecialField.RESOURCE_STATE.createValue(value.getFactory(), value);
-      if (DfConstantType.isConst(memState.getDfType(qualifierState), SpecialField.RESOURCE_CLOSED)) {
-        myClosedResourceUsages.add(call);
-      }
+      LongStream stream = ((DfIntType)memState.getDfType(qualifierState)).getRange().stream();
+      myClosedResourceUsages.compute(call, (c, curState) -> {
+        if (curState == null) return stream.mapToInt(val -> (int) val).boxed().collect(Collectors.toSet());
+        stream.forEach(val -> curState.add((int) val));
+        return curState;
+      });
     }
   }
 

@@ -396,9 +396,18 @@ public abstract class DataFlowInspectionBase extends AbstractBaseJavaLocalInspec
   }
 
   private void reportClosedResourceUsage(ProblemReporter reporter, DataFlowInstructionVisitor visitor) {
-    for (PsiMethodCallExpression expression : visitor.getClosedResourceUsages()) {
-      reporter.registerProblem(getElementToHighlight(expression), JavaAnalysisBundle.message("dataflow.message.resource.usage.closed"));
-    }
+    visitor.getClosedResourceUsages().forEach((expression, set) -> {
+      if (set.contains(SpecialField.RESOURCE_OPEN)) {
+        if (!REPORT_UNSOUND_WARNINGS || set.size() == 1) return;
+        if (set.contains(SpecialField.RESOURCE_CLOSED)) {
+          reporter.registerProblem(getElementToHighlight(expression), JavaAnalysisBundle.message("dataflow.message.resource.usage.closed"));
+        }
+        return;
+      }
+      if (set.contains( SpecialField.RESOURCE_CLOSED)) {
+        reporter.registerProblem(getElementToHighlight(expression), JavaAnalysisBundle.message("dataflow.message.resource.usage.closed.sure"));
+      }
+    });
   }
 
   private static boolean isCondition(@NotNull PsiExpression expression) {

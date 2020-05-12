@@ -220,7 +220,7 @@ public enum SpecialField implements VariableDescriptor {
   RESOURCE_STATE("State", false) {
     @Override
     public @NotNull DfType getDefaultValue(boolean forAccessor) {
-      return DfTypes.intRange(LongRangeSet.range(RESOURCE_OPEN, RESOURCE_CLOSED));
+      return DfTypes.intValue(RESOURCE_OPEN);
     }
 
     @Override
