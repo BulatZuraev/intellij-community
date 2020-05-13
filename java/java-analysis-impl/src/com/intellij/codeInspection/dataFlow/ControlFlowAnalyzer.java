@@ -365,7 +365,13 @@ public class ControlFlowAnalyzer extends JavaElementVisitor {
       PsiResourceList list = ((PsiTryStatement)parent).getResourceList();
       if (list != null) {
         for (PsiResourceListElement resource : list) {
-          if (resource instanceof PsiResourceVariable) {
+          if (resource instanceof PsiResourceExpression) {
+            PsiResourceExpression expr = (PsiResourceExpression)resource;
+            DfaValue value = myFactory.getExpressionFactory().getExpressionDfaValue(expr.getExpression());
+            addInstruction(new TryWithResourcesCloseInstruction(value));
+          } else if (resource instanceof PsiResourceVariable) {
+            DfaValue value = myFactory.getVarFactory().createVariableValue((PsiResourceVariable)resource);
+            addInstruction(new TryWithResourcesCloseInstruction(value));
             myCurrentFlow.removeVariable((PsiVariable)resource);
           }
         }
@@ -1149,14 +1155,6 @@ public class ControlFlowAnalyzer extends JavaElementVisitor {
       popTrap(TwrFinally.class);
       pushTrap(new InsideFinally(resourceList));
       startElement(resourceList);
-      //mark closed if expression
-      for (PsiResourceListElement element : resourceList) {
-        if (element instanceof PsiResourceExpression) {
-          PsiResourceExpression expr = (PsiResourceExpression)element;
-          DfaValue value = myFactory.getExpressionFactory().getExpressionDfaValue(expr.getExpression());
-          addInstruction(new TryWithResourcesCloseInstruction(value));
-        }
-      }
       addInstruction(new FlushFieldsInstruction());
       addThrows(null, closerExceptions);
       controlTransfer(new ExitFinallyTransfer(twrFinallyDescriptor), FList.emptyList()); // DfaControlTransferValue is on stack

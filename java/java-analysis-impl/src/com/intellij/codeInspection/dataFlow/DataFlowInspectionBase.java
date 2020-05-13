@@ -398,7 +398,7 @@ public abstract class DataFlowInspectionBase extends AbstractBaseJavaLocalInspec
   private void reportClosedResourceUsage(ProblemReporter reporter, DataFlowInstructionVisitor visitor) {
     visitor.getClosedResourceUsages().forEach((expression, set) -> {
       if (set.contains(SpecialField.RESOURCE_OPEN)) {
-        if (!REPORT_UNSOUND_WARNINGS || set.size() == 1) return;
+        if (!REPORT_UNSOUND_WARNINGS) return;
         if (set.contains(SpecialField.RESOURCE_CLOSED)) {
           reporter.registerProblem(getElementToHighlight(expression), JavaAnalysisBundle.message("dataflow.message.resource.usage.closed"));
         }

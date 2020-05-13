@@ -1,12 +1,18 @@
-import java.io.Reader;
-import java.io.BufferedInputStream;
+import java.io.*;
 
 class ResourceClose {
 
   native void unknown();
 
-  void testTryWithResourcesClose(BufferedInputStream c) throws Exception {
-    try (<error descr="Resource references are not supported at language level '8'">c</error>) {
+  void testTryWithResourcesCloseVar(InputStream c) throws Exception {
+    try (InputStream v = new FileInputStream("file")) {
+      c = v;
+    }
+    c.<warning descr="The call to 'read' always fails as resource is closed">read</warning>();
+  }
+
+  void testTryWithResourcesCloseExpr(InputStream c) throws Exception {
+    try (<error descr="Resource references are not supported at language level '7'">c</error>) {
       c.read();
     }
     c.<warning descr="The call to 'read' always fails as resource is closed">read</warning>();

@@ -225,8 +225,14 @@ public enum SpecialField implements VariableDescriptor {
 
     @Override
     public String getPresentationText(@NotNull DfType dfType, @Nullable PsiType type) {
-      // TODO
-      return super.getPresentationText(dfType, type);
+      Integer value = DfConstantType.getConstantOfType(dfType, Integer.class);
+      if (value == null) return "";
+      switch (value) {
+        case RESOURCE_OPEN: return "open";
+        case RESOURCE_CONSUMED: return "consumed";
+        case RESOURCE_CLOSED: return "closed";
+        default: return "";
+      }
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.intellij.codeInspection.dataFlow;
 
 import com.intellij.codeInspection.dataFlow.DataFlowInspectionBase.ConstantResult;
 import com.intellij.codeInspection.dataFlow.instructions.*;
+import com.intellij.codeInspection.dataFlow.rangeSet.LongRangeSet;
 import com.intellij.codeInspection.dataFlow.types.DfConstantType;
 import com.intellij.codeInspection.dataFlow.types.DfIntType;
 import com.intellij.codeInspection.dataFlow.types.DfType;
@@ -54,7 +55,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
   private final Map<PsiExpression, ThreeState> mySwitchLabelsReachability = new HashMap<>();
   private boolean myAlwaysReturnsNotNull = true;
   private final List<DfaMemoryState> myEndOfInitializerStates = new ArrayList<>();
-  private final Map<PsiMethodCallExpression, Set<Integer>> myClosedResourceUsages = new HashMap<>();
+  private final Map<PsiMethodCallExpression, LongRangeSet> myClosedResourceUsages = new HashMap<>();
 
   private static final CallMatcher USELESS_SAME_ARGUMENTS = CallMatcher.anyOf(
     CallMatcher.staticCall(CommonClassNames.JAVA_LANG_MATH, "min", "max").parameterCount(2),
@@ -173,7 +174,7 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     return myConstantExpressions;
   }
 
-  Map<PsiMethodCallExpression, Set<Integer>> getClosedResourceUsages() {
+  Map<PsiMethodCallExpression, LongRangeSet> getClosedResourceUsages() {
     return myClosedResourceUsages;
   }
 
@@ -350,12 +351,8 @@ final class DataFlowInstructionVisitor extends StandardInstructionVisitor {
     PsiMethodCallExpression call = ExpressionUtils.getCallForQualifier(expression);
     if (CANNOT_CALL_ON_CLOSED.test(call)) {
       DfaValue qualifierState = SpecialField.RESOURCE_STATE.createValue(value.getFactory(), value);
-      LongStream stream = ((DfIntType)memState.getDfType(qualifierState)).getRange().stream();
-      myClosedResourceUsages.compute(call, (c, curState) -> {
-        if (curState == null) return stream.mapToInt(val -> (int) val).boxed().collect(Collectors.toSet());
-        stream.forEach(val -> curState.add((int) val));
-        return curState;
-      });
+      LongRangeSet set = DfIntType.extractRange(memState.getDfType(qualifierState));
+      myClosedResourceUsages.merge(call, set, LongRangeSet::unite);
     }
   }
 
